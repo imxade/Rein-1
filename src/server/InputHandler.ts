@@ -47,7 +47,11 @@ export class InputHandler {
             case 'zoom':
                 if (msg.delta !== undefined && msg.delta !== 0) {
                     const invertMultiplier = (CONFIG.MOUSE_INVERT ?? false) ? -1 : 1;
-                    const amount = -msg.delta * invertMultiplier;
+                    const sensitivityFactor = 0.5; // Adjust scaling
+                    const MAX_ZOOM_STEP = 5;
+                    const scaledDelta = Math.sign(msg.delta) * Math.min(Math.abs(msg.delta) * sensitivityFactor, MAX_ZOOM_STEP);
+                    const amount = -scaledDelta * invertMultiplier;
+                    
                     await keyboard.pressKey(Key.LeftControl);
                     try {
                         await mouse.scrollDown(amount);
