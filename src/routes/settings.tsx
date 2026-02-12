@@ -195,16 +195,26 @@ function SettingsPage() {
                             type="button"
                             className="btn btn-neutral w-full"
                             onClick={() => {
+                                const port = parseInt(frontendPort, 10);
+                                if (!Number.isFinite(port) || port < 1 || port > 65535) {
+                                    alert('Please enter a valid port number (1–65535).');
+                                    return;
+                                }
+
                                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                                 const host = window.location.host;
                                 const wsUrl = `${protocol}//${host}/ws`;
                                 const socket = new WebSocket(wsUrl);
 
+                                socket.onerror = () => {
+                                    alert('Failed to connect to the server.');
+                                };
+
                                 socket.onopen = () => {
                                     socket.send(JSON.stringify({
                                         type: 'update-config',
                                         config: {
-                                            frontendPort: parseInt(frontendPort),
+                                            frontendPort: port,
                                         }
                                     }));
 
