@@ -21,6 +21,10 @@ export class InputHandler {
 	private moveTimer: ReturnType<typeof setTimeout> | null = null
 	private scrollTimer: ReturnType<typeof setTimeout> | null = null
 
+	// Cached cursor position — avoids async getPosition() on every move event
+	private cachedPos = new Point(0, 0)
+	private posInit = false
+
 	constructor() {
 		mouse.config.mouseSpeed = 1000
 	}
@@ -104,14 +108,17 @@ export class InputHandler {
 					Number.isFinite(msg.dx) &&
 					Number.isFinite(msg.dy)
 				) {
-					const currentPos = await mouse.getPosition()
-
-					await mouse.setPosition(
-						new Point(
-							Math.round(currentPos.x + msg.dx),
-							Math.round(currentPos.y + msg.dy),
-						),
+					// Initialise cache once; thereafter track position locally
+					if (!this.posInit) {
+						this.cachedPos = await mouse.getPosition()
+						this.posInit = true
+					}
+					const next = new Point(
+						Math.round(this.cachedPos.x + msg.dx),
+						Math.round(this.cachedPos.y + msg.dy),
 					)
+					this.cachedPos = next
+					await mouse.setPosition(next)
 				}
 				break
 
@@ -142,9 +149,9 @@ export class InputHandler {
 				if (this.isFiniteNumber(msg.dy) && Math.round(msg.dy) !== 0) {
 					const amount = this.clamp(Math.round(msg.dy), -MAX_SCROLL, MAX_SCROLL)
 					if (amount > 0) {
-						promises.push(mouse.scrollDown(amount).then(() => {}))
+						promises.push(mouse.scrollDown(amount).then(() => { }))
 					} else if (amount < 0) {
-						promises.push(mouse.scrollUp(-amount).then(() => {}))
+						promises.push(mouse.scrollUp(-amount).then(() => { }))
 					}
 				}
 
@@ -152,9 +159,9 @@ export class InputHandler {
 				if (this.isFiniteNumber(msg.dx) && Math.round(msg.dx) !== 0) {
 					const amount = this.clamp(Math.round(msg.dx), -MAX_SCROLL, MAX_SCROLL)
 					if (amount > 0) {
-						promises.push(mouse.scrollRight(amount).then(() => {}))
+						promises.push(mouse.scrollRight(amount).then(() => { }))
 					} else if (amount < 0) {
-						promises.push(mouse.scrollLeft(-amount).then(() => {}))
+						promises.push(mouse.scrollLeft(-amount).then(() => { }))
 					}
 				}
 
@@ -192,7 +199,6 @@ export class InputHandler {
 
 			case "key":
 				if (msg.key && typeof msg.key === "string" && msg.key.length <= 50) {
-					console.log(`Processing key: ${msg.key}`)
 					const nutKey = KEY_MAP[msg.key.toLowerCase()]
 
 					if (nutKey !== undefined) {
@@ -204,8 +210,6 @@ export class InputHandler {
 						await keyboard.releaseKey(spaceKey)
 					} else if (msg.key.length === 1) {
 						await keyboard.type(msg.key)
-					} else {
-						console.log(`Unmapped key: ${msg.key}`)
 					}
 				}
 				break
@@ -227,17 +231,13 @@ export class InputHandler {
 							nutKeys.push(nutKey)
 						} else if (lowerKey.length === 1) {
 							nutKeys.push(lowerKey)
-						} else {
-							console.warn(`Unknown key in combo: ${k}`)
 						}
 					}
 
 					if (nutKeys.length === 0) {
-						console.error("No valid keys in combo")
 						return
 					}
 
-					console.log("Pressing keys:", nutKeys)
 					const pressedKeys: Key[] = []
 
 					try {
@@ -256,8 +256,6 @@ export class InputHandler {
 							await keyboard.releaseKey(k)
 						}
 					}
-
-					console.log(`Combo complete: ${msg.keys.join("+")}`)
 				}
 				break
 
