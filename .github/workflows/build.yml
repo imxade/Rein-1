@@ -8,6 +8,10 @@ on:
     paths:
       - "src/**"
       - "public/**"
+      - "electron/**"
+      - "package.json"
+      - "vite.config.ts"
+      - ".github/workflows/**"
 
 jobs:
   build-electron:

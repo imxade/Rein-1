@@ -46,8 +46,7 @@ const config = defineConfig({
 	build: {
 		outDir: ".output",
 		emptyOutDir: true,
-	}
-
+	},
 })
 
 export default config
