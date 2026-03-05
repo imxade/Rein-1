@@ -15,10 +15,10 @@ let
   ];
 in
 pkgs.mkShell {
-  buildInputs = [
-    pkgs.nodejs_24
-    pkgs.procps
-    pkgs.appimage-run
+  buildInputs = with pkgs; [
+    nodejs_24
+    procps
+    appimage-run
   ] ++ sharedLibs;
 
   shellHook = ''
