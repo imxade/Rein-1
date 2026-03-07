@@ -5,15 +5,15 @@ import os from "node:os"
 
 export interface InputMessage {
 	type:
-		| "move"
-		| "paste"
-		| "copy"
-		| "click"
-		| "scroll"
-		| "key"
-		| "text"
-		| "zoom"
-		| "combo"
+	| "move"
+	| "paste"
+	| "copy"
+	| "click"
+	| "scroll"
+	| "key"
+	| "text"
+	| "zoom"
+	| "combo"
 	dx?: number
 	dy?: number
 	button?: "left" | "right" | "middle"
@@ -188,15 +188,15 @@ export class InputHandler {
 
 			case "scroll": {
 				const MAX_SCROLL = 100
-				const promises: Promise<void>[] = []
+				const promises: Promise<unknown>[] = []
 
 				// Vertical scroll
 				if (this.isFiniteNumber(msg.dy) && Math.round(msg.dy) !== 0) {
 					const amount = this.clamp(Math.round(msg.dy), -MAX_SCROLL, MAX_SCROLL)
 					if (amount > 0) {
-						promises.push(mouse.scrollDown(amount).then(() => {}))
+						promises.push(mouse.scrollDown(amount))
 					} else if (amount < 0) {
-						promises.push(mouse.scrollUp(-amount).then(() => {}))
+						promises.push(mouse.scrollUp(-amount))
 					}
 				}
 
@@ -204,14 +204,19 @@ export class InputHandler {
 				if (this.isFiniteNumber(msg.dx) && Math.round(msg.dx) !== 0) {
 					const amount = this.clamp(Math.round(msg.dx), -MAX_SCROLL, MAX_SCROLL)
 					if (amount > 0) {
-						promises.push(mouse.scrollRight(amount).then(() => {}))
+						promises.push(mouse.scrollRight(amount))
 					} else if (amount < 0) {
-						promises.push(mouse.scrollLeft(-amount).then(() => {}))
+						promises.push(mouse.scrollLeft(-amount))
 					}
 				}
 
 				if (promises.length) {
-					await Promise.all(promises)
+					const results = await Promise.allSettled(promises)
+					for (const result of results) {
+						if (result.status === "rejected") {
+							console.error("Scroll event failed:", result.reason)
+						}
+					}
 				}
 				break
 			}
@@ -304,9 +309,8 @@ export class InputHandler {
 
 						await new Promise((resolve) => setTimeout(resolve, 10))
 					} finally {
-						for (const k of pressedKeys.reverse()) {
-							await keyboard.releaseKey(k)
-						}
+						const releasePromises = pressedKeys.reverse().map((k) => keyboard.releaseKey(k))
+						await Promise.allSettled(releasePromises)
 					}
 
 					console.log(`Combo complete: ${msg.keys.join("+")}`)
